@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Timesheet Calculator</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero">
+        <p class="eyebrow">Timesheet calculator</p>
+        <h1>Plan working days, holidays, and project hours for a month.</h1>
+        <p class="lede">
+          Calculates Portuguese public holidays and Lisbon municipal holidays,
+          subtracts your days off, then spreads project hours across the
+          available workdays.
+        </p>
+      </header>
+
+      <main class="grid">
+        <section class="panel">
+          <h2>Month</h2>
+          <div class="field-row">
+            <label>
+              Month
+              <select id="month"></select>
+            </label>
+            <label>
+              Year
+              <input id="year" type="number" min="2000" max="2100" />
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label>
+              Workday limit
+              <input id="dailyLimit" type="number" min="1" step="1" value="8" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Days off</h2>
+            <button id="addDayOff" class="secondary" type="button">
+              Add day off
+            </button>
+          </div>
+          <p class="hint">
+            Add as many single days or date ranges as needed. A date range can
+            cover a full week.
+          </p>
+          <div id="dayOffList" class="stack"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Projects</h2>
+            <div class="inline-controls">
+              <label>
+                Count
+                <input id="projectCount" type="number" min="1" step="1" value="2" />
+              </label>
+              <button id="syncProjects" class="secondary" type="button">
+                Build rows
+              </button>
+            </div>
+          </div>
+          <p class="hint">
+            Enter the total hours worked on each project for the selected month.
+          </p>
+          <div id="projectList" class="stack"></div>
+        </section>
+
+        <section class="panel panel-actions">
+          <button id="calculate" type="button">Calculate timesheet</button>
+        </section>
+
+        <section class="panel results" id="results">
+          <h2>Results</h2>
+          <div id="summary" class="summary-grid"></div>
+          <div id="calendar" class="calendar"></div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
