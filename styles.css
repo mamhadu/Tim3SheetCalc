@@ -395,12 +395,67 @@ button:hover {
   }
 
   .results {
-    min-height: calc(100vh - 70px);
+    min-height: 0;
     align-content: start;
+  }
+
+  .results h2 {
+    display: none;
   }
 
   .hint {
     display: none;
+  }
+}
+
+@media (min-width: 1400px) {
+  .shell {
+    width: min(1820px, calc(100% - 12px));
+  }
+
+  .grid {
+    grid-template-columns: 320px minmax(0, 1fr);
+  }
+
+  .day-cell {
+    min-height: 56px;
+    padding: 5px;
+  }
+
+  .weekday-header {
+    font-size: 0.46rem;
+  }
+
+  .day-cell-head strong {
+    font-size: 0.55rem;
+  }
+
+  .day-cell-head span,
+  .tag,
+  .allocation-row,
+  .empty-state {
+    font-size: 0.44rem;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  }
+
+  .summary-item {
+    padding: 5px 6px;
+  }
+
+  .panel {
+    padding: 6px;
+  }
+
+  .panel-actions {
+    justify-content: stretch;
+  }
+
+  .panel-actions button {
+    width: 100%;
+    min-width: 0;
   }
 }
 
