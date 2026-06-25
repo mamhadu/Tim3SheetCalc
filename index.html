@@ -46,7 +46,10 @@
           </div>
 
           <div class="toolbar-right">
-            <span class="toolbar-view">Month view</span>
+            <label class="toolbar-select toolbar-month-select">
+              <span>Month</span>
+              <select id="month"></select>
+            </label>
           </div>
         </header>
 
@@ -60,16 +63,9 @@
             <h2>Month</h2>
             <div class="field-row">
               <label>
-                Month
-                <select id="month"></select>
-              </label>
-              <label>
                 Year
                 <input id="year" type="number" min="2000" max="2100" />
               </label>
-            </div>
-
-            <div class="field-row">
               <label>
                 Workday limit
                 <input id="dailyLimit" type="number" min="1" step="1" value="8" />
