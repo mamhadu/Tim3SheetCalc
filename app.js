@@ -237,6 +237,10 @@ function makeProjectRow(index) {
         Hours
         <input type="number" class="project-hours" min="0" step="0.25" value="0" />
       </label>
+      <label>
+        Allocation %
+        <input type="number" class="project-percent" min="0" max="100" step="0.1" value="0" />
+      </label>
     </div>
   `;
 
@@ -418,18 +422,37 @@ function readProjects() {
   [...projectList.children].forEach((row, index) => {
     const name = row.querySelector(".project-name").value.trim() || `Project ${index + 1}`;
     const hours = Number(row.querySelector(".project-hours").value);
-    if (!Number.isFinite(hours) || hours < 0) {
+    const percent = Number(row.querySelector(".project-percent").value);
+    if ((!Number.isFinite(hours) || hours < 0) && (!Number.isFinite(percent) || percent < 0)) {
       return;
     }
-    if (hours === 0 && !name) return;
+    if (hours === 0 && percent === 0 && !name) return;
     projects.push({
       name,
       hours,
+      percent,
       remaining: hours,
       order: index,
     });
   });
   return projects;
+}
+
+function resolveProjectTargets(projects, availableHours) {
+  return projects.map((project) => {
+    const targetHours =
+      Number.isFinite(project.hours) && project.hours > 0
+        ? project.hours
+        : Number.isFinite(project.percent) && project.percent > 0
+          ? (availableHours * project.percent) / 100
+          : 0;
+
+    return {
+      ...project,
+      hours: targetHours,
+      remaining: targetHours,
+    };
+  });
 }
 
 function buildAvailableDays(year, month, dayOffEntries) {
@@ -546,7 +569,7 @@ function renderSummary({
   holidays,
   availableDays,
   dayOffEntries,
-  projects,
+  projectHours,
   dailyLimit,
   allocationResult,
 }) {
@@ -560,7 +583,6 @@ function renderSummary({
   })();
 
   const holidayWeekdays = holidays.filter((holiday) => !isWeekend(holiday.date));
-  const projectHours = projects.reduce((sum, project) => sum + project.hours, 0);
   const availableHours = availableDays.length * dailyLimit;
   const utilizedHours = Math.min(projectHours, availableHours);
   const freeCapacity = Math.max(0, availableHours - projectHours);
@@ -754,7 +776,8 @@ function calculate() {
 
   const dayOffEntries = readDayOffEntries(year, month);
   const { holidays, availableDays, blocked } = buildAvailableDays(year, month, dayOffEntries);
-  const projectClones = projects.map((project) => ({ ...project }));
+  const availableHours = availableDays.length * dailyLimit;
+  const projectClones = resolveProjectTargets(projects, availableHours);
   const allocationResult = allocateHours(year, month, dailyLimit, availableDays, projectClones);
 
   renderSummary({
@@ -763,7 +786,7 @@ function calculate() {
     holidays,
     availableDays,
     dayOffEntries,
-    projects,
+    projectHours: projectClones.reduce((sum, project) => sum + project.hours, 0),
     dailyLimit,
     allocationResult,
   });
@@ -795,7 +818,6 @@ document.getElementById("addDayOff").addEventListener("click", () => {
   scheduleCalculate();
 });
 
-document.getElementById("calculate").addEventListener("click", calculate);
 monthSelect.addEventListener("change", calculate);
 yearInput.addEventListener("change", calculate);
 dailyLimitInput.addEventListener("change", calculate);
