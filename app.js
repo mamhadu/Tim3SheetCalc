@@ -661,6 +661,9 @@ document.getElementById("syncProjects").addEventListener("click", () => {
 });
 
 document.getElementById("calculate").addEventListener("click", calculate);
+monthSelect.addEventListener("change", calculate);
+yearInput.addEventListener("change", calculate);
+dailyLimitInput.addEventListener("change", calculate);
 projectCountInput.addEventListener("change", () => syncProjects(projectCountInput.value));
 
 seedDefaults();
