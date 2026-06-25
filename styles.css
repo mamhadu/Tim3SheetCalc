@@ -56,6 +56,10 @@ body {
   box-shadow: var(--shadow);
 }
 
+.sidebar-actions {
+  display: grid;
+}
+
 .sidebar-panel h3 {
   margin: 0 0 8px;
   font-size: 0.72rem;
@@ -93,6 +97,26 @@ body {
 
 .calendar-item span {
   min-width: 0;
+}
+
+.sidebar .field-row,
+.sidebar .inline-controls {
+  grid-template-columns: 1fr;
+}
+
+.sidebar label {
+  color: #d0d0d0;
+}
+
+.sidebar input {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+.sidebar .sidebar-actions button {
+  width: 100%;
+  min-width: 0;
+  background: linear-gradient(180deg, #0a84ff, #0078d4);
 }
 
 .mini-calendars {
@@ -157,6 +181,12 @@ body {
 .mini-day.dayoff {
   background: rgba(100, 46, 154, 0.92);
   color: #fff;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .workspace {
@@ -424,12 +454,6 @@ button:focus,
   color: #ffffff;
 }
 
-.controls {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 8px;
-}
-
 .panel {
   grid-column: span 12;
   padding: 8px;
@@ -502,16 +526,6 @@ label {
   margin-top: 6px;
 }
 
-.panel-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.panel-actions button {
-  min-width: 220px;
-  background: linear-gradient(180deg, #0a84ff, #0078d4);
-}
-
 .error {
   border-color: rgba(255, 111, 111, 0.35);
   color: #ffd1d1;
@@ -530,11 +544,7 @@ label {
   .controls .panel:nth-child(1),
   .controls .panel:nth-child(2),
   .controls .panel:nth-child(3) {
-    grid-column: span 4;
-  }
-
-  .controls .panel:nth-child(4) {
-    grid-column: 1 / -1;
+    grid-column: span 6;
   }
 }
 

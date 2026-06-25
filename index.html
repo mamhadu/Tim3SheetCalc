@@ -31,6 +31,24 @@
             </div>
           </div>
         </div>
+
+        <div class="sidebar-panel">
+          <h3>Month</h3>
+          <div class="field-row">
+            <label>
+              Year
+              <input id="year" type="number" min="2000" max="2100" />
+            </label>
+            <label>
+              Workday limit
+              <input id="dailyLimit" type="number" min="1" step="1" value="8" />
+            </label>
+          </div>
+        </div>
+
+        <div class="sidebar-panel sidebar-actions">
+          <button id="calculate" type="button">Calculate timesheet</button>
+        </div>
       </aside>
 
       <main class="workspace">
@@ -60,20 +78,6 @@
 
         <section class="controls">
           <section class="panel">
-            <h2>Month</h2>
-            <div class="field-row">
-              <label>
-                Year
-                <input id="year" type="number" min="2000" max="2100" />
-              </label>
-              <label>
-                Workday limit
-                <input id="dailyLimit" type="number" min="1" step="1" value="8" />
-              </label>
-            </div>
-          </section>
-
-          <section class="panel">
             <div class="panel-heading">
               <h2>Days off</h2>
               <button id="addDayOff" class="secondary" type="button">Add day off</button>
@@ -99,10 +103,6 @@
               Enter the total hours worked on each project for the selected month.
             </p>
             <div id="projectList" class="stack"></div>
-          </section>
-
-          <section class="panel panel-actions">
-            <button id="calculate" type="button">Calculate timesheet</button>
           </section>
         </section>
       </main>
