@@ -6,6 +6,7 @@ const projectList = document.getElementById("projectList");
 const projectCountInput = document.getElementById("projectCount");
 const summary = document.getElementById("summary");
 const calendar = document.getElementById("calendar");
+let calculateTimer = null;
 
 const monthNames = [
   "January",
@@ -652,19 +653,38 @@ function calculate() {
   renderCalendar(allocationResult.schedule, holidays, blocked, year, month);
 }
 
+function scheduleCalculate() {
+  if (calculateTimer) {
+    clearTimeout(calculateTimer);
+  }
+  calculateTimer = setTimeout(() => {
+    calculateTimer = null;
+    calculate();
+  }, 80);
+}
+
 document.getElementById("addDayOff").addEventListener("click", () => {
   dayOffList.appendChild(makeDayOffRow(dayOffList.children.length));
+  scheduleCalculate();
 });
 
 document.getElementById("syncProjects").addEventListener("click", () => {
   syncProjects(projectCountInput.value);
+  scheduleCalculate();
 });
 
 document.getElementById("calculate").addEventListener("click", calculate);
-monthSelect.addEventListener("change", calculate);
-yearInput.addEventListener("change", calculate);
-dailyLimitInput.addEventListener("change", calculate);
-projectCountInput.addEventListener("change", () => syncProjects(projectCountInput.value));
+monthSelect.addEventListener("change", scheduleCalculate);
+yearInput.addEventListener("change", scheduleCalculate);
+dailyLimitInput.addEventListener("change", scheduleCalculate);
+projectCountInput.addEventListener("change", () => {
+  syncProjects(projectCountInput.value);
+  scheduleCalculate();
+});
+dayOffList.addEventListener("input", scheduleCalculate);
+dayOffList.addEventListener("change", scheduleCalculate);
+projectList.addEventListener("input", scheduleCalculate);
+projectList.addEventListener("change", scheduleCalculate);
 
 seedDefaults();
 calculate();
