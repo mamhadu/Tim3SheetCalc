@@ -6,6 +6,11 @@ const projectList = document.getElementById("projectList");
 const projectCountInput = document.getElementById("projectCount");
 const summary = document.getElementById("summary");
 const calendar = document.getElementById("calendar");
+const sidebarMiniCalendars = document.getElementById("sidebarMiniCalendars");
+const toolbarTitle = document.getElementById("toolbarTitle");
+const prevMonthButton = document.getElementById("prevMonthButton");
+const nextMonthButton = document.getElementById("nextMonthButton");
+const todayButton = document.getElementById("todayButton");
 let calculateTimer = null;
 
 const monthNames = [
@@ -66,6 +71,19 @@ function formatWeekday(date) {
   return new Intl.DateTimeFormat("en-GB", {
     weekday: "short",
   }).format(date);
+}
+
+function formatLongWeekday(date) {
+  return new Intl.DateTimeFormat("pt-PT", {
+    weekday: "long",
+  }).format(date);
+}
+
+function formatToolbarMonth(year, month) {
+  return new Intl.DateTimeFormat("pt-PT", {
+    month: "long",
+    year: "numeric",
+  }).format(localDate(year, month, 1));
 }
 
 function isWeekend(date) {
@@ -268,6 +286,80 @@ function seedDefaults() {
   dayOffList.appendChild(makeDayOffRow(0));
   projectList.appendChild(makeProjectRow(0));
   projectList.appendChild(makeProjectRow(1));
+}
+
+function clampMonth(year, month) {
+  let nextYear = year;
+  let nextMonth = month;
+  if (nextMonth < 1) {
+    nextMonth = 12;
+    nextYear -= 1;
+  } else if (nextMonth > 12) {
+    nextMonth = 1;
+    nextYear += 1;
+  }
+  return { year: nextYear, month: nextMonth };
+}
+
+function shiftMonth(offset) {
+  const currentYear = Number(yearInput.value);
+  const currentMonth = Number(monthSelect.value);
+  const next = clampMonth(currentYear, currentMonth + offset);
+  yearInput.value = String(next.year);
+  monthSelect.value = String(next.month);
+  calculate();
+}
+
+function goToToday() {
+  const today = new Date();
+  yearInput.value = String(today.getFullYear());
+  monthSelect.value = String(today.getMonth() + 1);
+  calculate();
+}
+
+function buildMiniCalendar(year, month, label, selected = false) {
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstOfMonth = localDate(year, month, 1);
+  const firstWeekStart = addDays(firstOfMonth, -(firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1));
+  const today = new Date();
+  const cells = [];
+  let cursor = cloneDate(firstWeekStart);
+
+  for (let week = 0; week < 6; week += 1) {
+    for (let day = 0; day < 7; day += 1) {
+      const inMonth = cursor.getMonth() + 1 === month && cursor.getFullYear() === year;
+      const isToday =
+        cursor.getFullYear() === today.getFullYear() &&
+        cursor.getMonth() === today.getMonth() &&
+        cursor.getDate() === today.getDate();
+      cells.push(`
+        <span class="mini-day ${inMonth ? "in-month" : "out-month"} ${isToday ? "today" : ""}">
+          ${inMonth ? cursor.getDate() : ""}
+        </span>
+      `);
+      cursor = addDays(cursor, 1);
+    }
+  }
+
+  return `
+    <article class="mini-calendar ${selected ? "selected" : ""}">
+      <header>
+        <strong>${label}</strong>
+      </header>
+      <div class="mini-weekdays">
+        <span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span><span>D</span>
+      </div>
+      <div class="mini-grid">${cells.join("")}</div>
+    </article>
+  `;
+}
+
+function renderSidebar(year, month) {
+  const next = clampMonth(year, month + 1);
+  sidebarMiniCalendars.innerHTML = `
+    ${buildMiniCalendar(year, month, formatToolbarMonth(year, month), true)}
+    ${buildMiniCalendar(next.year, next.month, formatToolbarMonth(next.year, next.month))}
+  `;
 }
 
 function readDayOffEntries(selectedYear, selectedMonth) {
@@ -514,10 +606,19 @@ function renderCalendar(schedule, holidays, blocked, year, month) {
   const firstOfMonth = localDate(year, month, 1);
   const firstWeekStart = addDays(firstOfMonth, -(firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1));
 
-  const weekLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const weekLabels = [
+    "segunda-feira",
+    "terça-feira",
+    "quarta-feira",
+    "quinta-feira",
+    "sexta-feira",
+    "sábado",
+    "domingo",
+  ];
   const weeks = [];
   let cursor = cloneDate(firstWeekStart);
   const lastOfMonth = localDate(year, month, daysInMonth);
+  const today = new Date();
 
   while (cursor <= lastOfMonth || cursor.getMonth() + 1 === month) {
     const week = [];
@@ -567,6 +668,11 @@ function renderCalendar(schedule, holidays, blocked, year, month) {
                       inMonth ? "in-month" : "out-month",
                       holiday ? "holiday" : "",
                       blockedReason ? "blocked" : "",
+                      date.getFullYear() === today.getFullYear() &&
+                      date.getMonth() === today.getMonth() &&
+                      date.getDate() === today.getDate()
+                        ? "today"
+                        : "",
                       day?.allocations?.length ? "allocated" : "",
                     ]
                       .filter(Boolean)
@@ -584,7 +690,7 @@ function renderCalendar(schedule, holidays, blocked, year, month) {
                       <div class="${classes}">
                         <header class="day-cell-head">
                           <div>
-                            <strong>${formatWeekday(date)}</strong>
+                            <strong>${formatLongWeekday(date)}</strong>
                             <span>${date.getDate()}</span>
                           </div>
                           ${statusLabel}
@@ -651,6 +757,8 @@ function calculate() {
     allocationResult,
   });
   renderCalendar(allocationResult.schedule, holidays, blocked, year, month);
+  renderSidebar(year, month);
+  toolbarTitle.textContent = formatToolbarMonth(year, month);
 }
 
 function scheduleCalculate() {
@@ -677,6 +785,9 @@ document.getElementById("calculate").addEventListener("click", calculate);
 monthSelect.addEventListener("change", calculate);
 yearInput.addEventListener("change", calculate);
 dailyLimitInput.addEventListener("change", calculate);
+prevMonthButton.addEventListener("click", () => shiftMonth(-1));
+nextMonthButton.addEventListener("click", () => shiftMonth(1));
+todayButton.addEventListener("click", goToToday);
 projectCountInput.addEventListener("change", () => {
   syncProjects(projectCountInput.value);
   scheduleCalculate();
