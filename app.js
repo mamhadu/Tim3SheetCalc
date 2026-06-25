@@ -147,6 +147,17 @@ function parseDateInput(value) {
   return localDate(year, month, day);
 }
 
+function wireDatePicker(input) {
+  const openPicker = () => {
+    if (typeof input.showPicker === "function") {
+      input.showPicker();
+    }
+  };
+
+  input.addEventListener("click", openPicker);
+  input.addEventListener("focus", openPicker);
+}
+
 function makeDayOffRow(index) {
   const wrapper = document.createElement("div");
   wrapper.className = "day-off-row";
@@ -159,22 +170,12 @@ function makeDayOffRow(index) {
     </div>
     <div class="row-grid">
       <label>
-        Type
-        <select class="day-off-type">
-          <option value="single">Single day</option>
-          <option value="range">Date range / week</option>
-        </select>
-      </label>
-      <label class="single-field">
+        Start
         <input type="date" class="day-off-start" />
       </label>
-      <label class="range-field" hidden>
-        Start
-        <input type="date" class="day-off-range-start" />
-      </label>
-      <label class="range-field" hidden>
+      <label>
         End
-        <input type="date" class="day-off-range-end" />
+        <input type="date" class="day-off-end" />
       </label>
       <label>
         Note
@@ -183,18 +184,31 @@ function makeDayOffRow(index) {
     </div>
   `;
 
-  const typeSelect = wrapper.querySelector(".day-off-type");
-  const singleField = wrapper.querySelector(".single-field");
-  const rangeFields = wrapper.querySelectorAll(".range-field");
   const removeButton = wrapper.querySelector(".remove-row");
+  const startInput = wrapper.querySelector(".day-off-start");
+  const endInput = wrapper.querySelector(".day-off-end");
 
-  typeSelect.addEventListener("change", () => {
-    const isRange = typeSelect.value === "range";
-    singleField.hidden = isRange;
-    rangeFields.forEach((field) => {
-      field.hidden = !isRange;
-    });
-  });
+  [startInput, endInput].forEach(wireDatePicker);
+
+  const syncDateBounds = () => {
+    const startValue = startInput.value;
+    const endValue = endInput.value;
+    if (startValue) {
+      endInput.min = startValue;
+    } else {
+      endInput.removeAttribute("min");
+    }
+    if (startValue && endValue && endValue < startValue) {
+      endInput.value = startValue;
+      endInput.min = startValue;
+    }
+  };
+
+  startInput.addEventListener("change", syncDateBounds);
+  startInput.addEventListener("input", syncDateBounds);
+  endInput.addEventListener("change", syncDateBounds);
+  endInput.addEventListener("input", syncDateBounds);
+  syncDateBounds();
 
   removeButton.addEventListener("click", () => {
     wrapper.remove();
@@ -343,6 +357,8 @@ function renderSidebar(year, month, holidays = [], dayOffEntries = []) {
   dayOffEntries.forEach((entry) => {
     for (let cursor = cloneDate(entry.start); cursor <= entry.end; cursor = addDays(cursor, 1)) {
       if (cursor.getMonth() + 1 !== month || cursor.getFullYear() !== year) continue;
+      if (isWeekend(cursor)) continue;
+      if (holidayKeys.has(dateKey(cursor))) continue;
       dayOffKeys.add(dateKey(cursor));
     }
   });
@@ -354,10 +370,13 @@ function renderSidebar(year, month, holidays = [], dayOffEntries = []) {
 
 function updateSidebarCounts({ availableDays, holidays, dayOffEntries, projects, year, month }) {
   const projectHours = projects.length;
+  const holidayKeys = new Set(holidays.map((holiday) => dateKey(holiday.date)));
   const blockedDays = new Set();
   dayOffEntries.forEach((entry) => {
     for (let cursor = cloneDate(entry.start); cursor <= entry.end; cursor = addDays(cursor, 1)) {
       if (cursor.getMonth() + 1 !== month || cursor.getFullYear() !== year) continue;
+      if (isWeekend(cursor)) continue;
+      if (holidayKeys.has(dateKey(cursor))) continue;
       blockedDays.add(dateKey(cursor));
     }
   });
@@ -373,34 +392,19 @@ function readDayOffEntries(selectedYear, selectedMonth) {
   const entries = [];
 
   [...dayOffList.children].forEach((row, index) => {
-    const type = row.querySelector(".day-off-type").value;
     const note = row.querySelector(".day-off-note").value.trim();
-    if (type === "single") {
-      const date = parseDateInput(row.querySelector(".day-off-start").value);
-      if (!date) return;
-      if (date < monthStart || date > monthEnd) return;
-      entries.push({
-        key: `${date.toISOString().slice(0, 10)}-${index}`,
-        start: date,
-        end: date,
-        note,
-      });
-      return;
-    }
-
-    const start = parseDateInput(row.querySelector(".day-off-range-start").value);
-    const end = parseDateInput(row.querySelector(".day-off-range-end").value);
+    const start = parseDateInput(row.querySelector(".day-off-start").value);
+    const end = parseDateInput(row.querySelector(".day-off-end").value);
     if (!start || !end) return;
 
-    const normalizedStart = start < end ? start : end;
-    const normalizedEnd = start < end ? end : start;
-    if (normalizedEnd < monthStart || normalizedStart > monthEnd) return;
+    const normalizedEnd = end < start ? start : end;
+    if (normalizedEnd < monthStart || start > monthEnd) return;
 
     entries.push({
-      key: `${normalizedStart.toISOString().slice(0, 10)}-${normalizedEnd
+      key: `${start.toISOString().slice(0, 10)}-${normalizedEnd
         .toISOString()
         .slice(0, 10)}-${index}`,
-      start: normalizedStart,
+      start,
       end: normalizedEnd,
       note,
     });
@@ -444,6 +448,8 @@ function buildAvailableDays(year, month, dayOffEntries) {
     ) {
       if (cursor.getMonth() + 1 !== month) continue;
       if (cursor.getFullYear() !== year) continue;
+      if (isWeekend(cursor)) continue;
+      if (holidayLookup.has(dateKey(cursor))) continue;
       blocked.set(dateKey(cursor), entry.note || "Day off");
     }
   });
