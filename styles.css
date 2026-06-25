@@ -45,49 +45,49 @@ body::before {
 }
 
 .shell {
-  width: min(1200px, calc(100% - 32px));
+  width: min(1080px, calc(100% - 24px));
   margin: 0 auto;
-  padding: 32px 0 56px;
+  padding: 16px 0 20px;
 }
 
 .hero {
-  padding: 20px 0 28px;
+  padding: 8px 0 14px;
 }
 
 .eyebrow {
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   color: var(--accent-strong);
 }
 
 h1 {
   margin: 0;
-  max-width: 12ch;
-  font-size: clamp(2.4rem, 5vw, 4.9rem);
-  line-height: 0.96;
+  max-width: 18ch;
+  font-size: clamp(1.6rem, 2.8vw, 2.6rem);
+  line-height: 1.02;
 }
 
 .lede {
-  margin: 16px 0 0;
-  max-width: 64ch;
-  font-size: 1.04rem;
-  line-height: 1.65;
+  margin: 8px 0 0;
+  max-width: 72ch;
+  font-size: 0.9rem;
+  line-height: 1.45;
   color: var(--muted);
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 18px;
+  gap: 12px;
 }
 
 .panel {
   grid-column: span 12;
-  padding: 20px;
+  padding: 14px;
   border: 1px solid var(--panel-border);
-  border-radius: 22px;
+  border-radius: 18px;
   background: var(--panel);
   box-shadow: var(--shadow);
   backdrop-filter: blur(12px);
@@ -95,28 +95,28 @@ h1 {
 
 .panel h2 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .panel-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
 .field-row,
 .inline-controls {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
+  gap: 10px;
 }
 
 label {
   display: grid;
-  gap: 8px;
-  font-size: 0.95rem;
+  gap: 6px;
+  font-size: 0.82rem;
   color: var(--muted);
 }
 
@@ -130,8 +130,8 @@ input,
 select {
   width: 100%;
   border: 1px solid rgba(85, 62, 42, 0.18);
-  border-radius: 14px;
-  padding: 12px 14px;
+  border-radius: 12px;
+  padding: 10px 12px;
   background: rgba(255, 255, 255, 0.92);
   color: var(--ink);
 }
@@ -145,13 +145,13 @@ button:focus {
 
 button {
   border: 0;
-  border-radius: 14px;
-  padding: 12px 16px;
+  border-radius: 12px;
+  padding: 10px 14px;
   background: linear-gradient(180deg, #a85b35, #7f4025);
   color: white;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 12px 28px rgba(127, 64, 37, 0.24);
+  box-shadow: 0 8px 18px rgba(127, 64, 37, 0.18);
 }
 
 button.secondary {
@@ -166,40 +166,41 @@ button:hover {
 }
 
 .hint {
-  margin: 0 0 14px;
+  margin: 0 0 10px;
   color: var(--muted);
-  line-height: 1.55;
+  line-height: 1.4;
+  font-size: 0.82rem;
 }
 
 .stack {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .day-off-row,
 .project-row,
 .result-card {
   border: 1px solid rgba(85, 62, 42, 0.12);
-  border-radius: 18px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.86);
-  padding: 14px;
+  padding: 12px;
 }
 
 .row-top {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .row-top strong {
-  font-size: 1rem;
+  font-size: 0.92rem;
 }
 
 .row-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .panel-actions {
@@ -209,58 +210,58 @@ button:hover {
 
 .panel-actions button {
   min-width: 220px;
-  padding: 14px 18px;
+  padding: 12px 16px;
 }
 
 .results {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
 }
 
 .summary-item {
   border: 1px solid rgba(85, 62, 42, 0.12);
-  border-radius: 18px;
+  border-radius: 14px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 240, 232, 0.92));
-  padding: 14px;
+  padding: 10px 12px;
 }
 
 .summary-item span {
   display: block;
   color: var(--muted);
-  font-size: 0.88rem;
-  margin-bottom: 8px;
+  font-size: 0.74rem;
+  margin-bottom: 6px;
 }
 
 .summary-item strong {
-  font-size: 1.25rem;
+  font-size: 1rem;
 }
 
 .calendar {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .week-view {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .weekday-headers,
 .week-row {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .weekday-header {
   padding: 0 10px;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -269,13 +270,13 @@ button:hover {
 
 .day-cell {
   display: grid;
-  gap: 10px;
-  min-height: 150px;
-  padding: 12px;
+  gap: 6px;
+  min-height: 112px;
+  padding: 10px;
   border: 1px solid rgba(85, 62, 42, 0.12);
-  border-radius: 18px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 8px 18px rgba(57, 38, 22, 0.06);
+  box-shadow: 0 6px 14px rgba(57, 38, 22, 0.05);
 }
 
 .day-cell.out-month {
@@ -298,25 +299,25 @@ button:hover {
 .day-cell-head {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-start;
 }
 
 .day-cell-head strong {
   display: block;
-  font-size: 0.94rem;
+  font-size: 0.84rem;
 }
 
 .day-cell-head span {
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.72rem;
 }
 
 .tag {
   align-self: flex-start;
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   background: var(--accent-soft);
@@ -335,22 +336,24 @@ button:hover {
 
 .allocation {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .allocation-row {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
   background: rgba(143, 77, 47, 0.06);
+  font-size: 0.74rem;
 }
 
 .empty-state {
   margin: 0;
   color: var(--muted);
   font-style: italic;
+  font-size: 0.74rem;
 }
 
 .error {
@@ -363,7 +366,7 @@ button:hover {
   .panel:nth-child(1),
   .panel:nth-child(2),
   .panel:nth-child(3) {
-    grid-column: span 6;
+    grid-column: span 4;
   }
 
   .panel:nth-child(4) {
@@ -377,13 +380,13 @@ button:hover {
 
 @media (max-width: 640px) {
   .shell {
-    width: min(100% - 20px, 1200px);
-    padding-top: 18px;
+    width: min(100% - 16px, 1080px);
+    padding-top: 12px;
   }
 
   .panel {
-    padding: 16px;
-    border-radius: 18px;
+    padding: 12px;
+    border-radius: 16px;
   }
 
   .panel-actions button {
