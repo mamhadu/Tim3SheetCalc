@@ -166,7 +166,6 @@ function makeDayOffRow(index) {
         </select>
       </label>
       <label class="single-field">
-        Date
         <input type="date" class="day-off-start" />
       </label>
       <label class="range-field" hidden>
