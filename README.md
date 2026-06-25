@@ -6,6 +6,7 @@ Static browser app for calculating monthly working days in Portugal with:
 - Lisbon municipal holiday
 - Multiple single-day or date-range days off
 - Project-hour distribution capped at 8 hours per workday
+- Week-view calendar with per-day project allocations
 
 ## Usage
 

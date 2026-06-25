@@ -243,26 +243,73 @@ button:hover {
 
 .calendar {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
-.day-card {
+.week-view {
+  display: grid;
+  gap: 10px;
+}
+
+.weekday-headers,
+.week-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.weekday-header {
+  padding: 0 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.day-cell {
+  display: grid;
+  gap: 10px;
+  min-height: 150px;
+  padding: 12px;
   border: 1px solid rgba(85, 62, 42, 0.12);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.86);
-  padding: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 8px 18px rgba(57, 38, 22, 0.06);
 }
 
-.day-card header {
+.day-cell.out-month {
+  opacity: 0.42;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.day-cell.holiday {
+  background: linear-gradient(180deg, rgba(255, 247, 242, 0.98), rgba(255, 237, 230, 0.92));
+}
+
+.day-cell.blocked {
+  background: linear-gradient(180deg, rgba(252, 248, 243, 0.96), rgba(246, 238, 229, 0.92));
+}
+
+.day-cell.allocated {
+  border-color: rgba(47, 107, 79, 0.18);
+}
+
+.day-cell-head {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 10px;
+  align-items: flex-start;
 }
 
-.day-card h3 {
-  margin: 0;
-  font-size: 1rem;
+.day-cell-head strong {
+  display: block;
+  font-size: 0.94rem;
+}
+
+.day-cell-head span {
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
 .tag {
@@ -344,9 +391,21 @@ button:hover {
   }
 
   .row-top,
-  .day-card header,
   .panel-heading {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .weekday-headers,
+  .week-row {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .weekday-headers {
+    display: none;
+  }
+
+  .day-cell {
+    min-height: auto;
   }
 }

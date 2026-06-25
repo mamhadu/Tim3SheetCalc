@@ -39,6 +39,12 @@ function localDate(year, month, day) {
   return new Date(year, month - 1, day, 12);
 }
 
+function dateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate()
+  ).padStart(2, "0")}`;
+}
+
 function formatDate(date) {
   return new Intl.DateTimeFormat("en-GB", {
     weekday: "short",
@@ -52,6 +58,12 @@ function formatMonthDay(date) {
   return new Intl.DateTimeFormat("en-GB", {
     month: "short",
     day: "numeric",
+  }).format(date);
+}
+
+function formatWeekday(date) {
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
   }).format(date);
 }
 
@@ -322,7 +334,7 @@ function buildAvailableDays(year, month, dayOffEntries) {
   const holidays = getPortugueseHolidays(year).filter((holiday) => holiday.date.getMonth() + 1 === month);
   const holidayLookup = new Map();
   holidays.forEach((holiday) => {
-    holidayLookup.set(holiday.date.toDateString(), holiday);
+    holidayLookup.set(dateKey(holiday.date), holiday);
   });
 
   const blocked = new Map();
@@ -334,7 +346,7 @@ function buildAvailableDays(year, month, dayOffEntries) {
     ) {
       if (cursor.getMonth() + 1 !== month) continue;
       if (cursor.getFullYear() !== year) continue;
-      blocked.set(cursor.toDateString(), entry.note || "Day off");
+      blocked.set(dateKey(cursor), entry.note || "Day off");
     }
   });
 
@@ -345,10 +357,10 @@ function buildAvailableDays(year, month, dayOffEntries) {
     const date = localDate(year, month, day);
     if (isWeekend(date)) continue;
 
-    const holiday = holidayLookup.get(date.toDateString());
+    const holiday = holidayLookup.get(dateKey(date));
     if (holiday) continue;
 
-    const dayOffReason = blocked.get(date.toDateString());
+    const dayOffReason = blocked.get(dateKey(date));
     if (dayOffReason) continue;
 
     availableDays.push(date);
@@ -357,6 +369,7 @@ function buildAvailableDays(year, month, dayOffEntries) {
   return {
     holidays,
     availableDays,
+    blocked,
   };
 }
 
@@ -493,81 +506,114 @@ function renderSummary({
   }
 }
 
-function renderCalendar(schedule, holidays, availableDays, year, month) {
-  const holidayMap = new Map(holidays.map((holiday) => [holiday.date.toDateString(), holiday]));
-  const availableSet = new Set(availableDays.map((date) => date.toDateString()));
+function renderCalendar(schedule, holidays, blocked, year, month) {
+  const holidayMap = new Map(holidays.map((holiday) => [dateKey(holiday.date), holiday]));
+  const scheduleMap = new Map(schedule.map((day) => [dateKey(day.date), day]));
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstOfMonth = localDate(year, month, 1);
+  const firstWeekStart = addDays(firstOfMonth, -(firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1));
 
-  const cards = schedule.length
-    ? schedule
-        .map((day) => {
-          const holiday = holidayMap.get(day.date.toDateString());
-          const allocations = day.allocations
-            .map(
-              (item) => `
-                <div class="allocation-row">
-                  <span>${item.name}</span>
-                  <strong>${item.hours.toFixed(2).replace(/\.00$/, "")}h</strong>
-                </div>
-              `
-            )
-            .join("");
+  const weekLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const weeks = [];
+  let cursor = cloneDate(firstWeekStart);
+  const lastOfMonth = localDate(year, month, daysInMonth);
 
-          const dayLabel = formatDate(day.date);
-          const monthDay = formatMonthDay(day.date);
+  while (cursor <= lastOfMonth || cursor.getMonth() + 1 === month) {
+    const week = [];
+    for (let i = 0; i < 7; i += 1) {
+      const date = cloneDate(cursor);
+      const inMonth = date.getMonth() + 1 === month && date.getFullYear() === year;
+      const holiday = holidayMap.get(dateKey(date));
+      const day = scheduleMap.get(dateKey(date));
+      const blockedReason = blocked.get(dateKey(date));
+      week.push({ date, inMonth, holiday, day, blockedReason });
+      cursor = addDays(cursor, 1);
+    }
+    weeks.push(week);
+  }
 
-          let tag = '<span class="tag success">Allocated</span>';
-          if (day.empty) {
-            tag = '<span class="tag">No hours</span>';
-          }
-          if (holiday) {
-            tag = `<span class="tag warn">${holiday.name}</span>`;
-          }
-
-          return `
-            <article class="day-card">
-              <header>
-                <div>
-                  <h3>${dayLabel}</h3>
-                  <p class="hint">${monthDay}</p>
-                </div>
-                ${tag}
-              </header>
-              <div class="allocation">
-                ${
-                  holiday
-                    ? `<p class="empty-state">Holiday: ${holiday.name}</p>`
-                    : allocations.length
-                      ? allocations
-                      : '<p class="empty-state">No project hours assigned.</p>'
-                }
-              </div>
-            </article>
-          `;
-        })
-        .join("")
-    : "";
-
-  calendar.innerHTML = cards || '<p class="empty-state">No available workdays to allocate.</p>';
-
-  if (!schedule.length) {
+  const hasAnyDay = schedule.length > 0;
+  if (!hasAnyDay) {
+    calendar.innerHTML = '<p class="empty-state">No available workdays to allocate.</p>';
     return;
   }
 
-  const missingDays = [...Array(getDaysInMonth(year, month)).keys()]
-    .map((index) => localDate(year, month, index + 1))
-    .filter((date) => !availableSet.has(date.toDateString()) && !isWeekend(date));
+  calendar.innerHTML = `
+    <div class="week-view">
+      <div class="weekday-headers">
+        ${weekLabels.map((label) => `<div class="weekday-header">${label}</div>`).join("")}
+      </div>
+      <div class="week-rows">
+        ${weeks
+          .map(
+            (week) => `
+              <div class="week-row">
+                ${week
+                  .map(({ date, inMonth, holiday, day, blockedReason }) => {
+                    const allocations = (day?.allocations || [])
+                      .map(
+                        (item) => `
+                          <div class="allocation-row">
+                            <span>${item.name}</span>
+                            <strong>${item.hours.toFixed(2).replace(/\.00$/, "")}h</strong>
+                          </div>
+                        `
+                      )
+                      .join("");
 
-  if (missingDays.length) {
-    calendar.insertAdjacentHTML(
-      "beforeend",
-      `
-        <div class="result-card">
-          <strong>Excluded days</strong>
-          <p class="hint">Weekends, holidays, and selected days off were removed from the schedule.</p>
-        </div>
-      `
-    );
-  }
+                    const classes = [
+                      "day-cell",
+                      inMonth ? "in-month" : "out-month",
+                      holiday ? "holiday" : "",
+                      blockedReason ? "blocked" : "",
+                      day?.allocations?.length ? "allocated" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ");
+
+                    const statusLabel = holiday
+                      ? `<span class="tag warn">${holiday.name}</span>`
+                      : day?.allocations?.length
+                        ? `<span class="tag success">${day.allocations.length === 1 ? "Allocated" : "Mixed"}</span>`
+                        : inMonth
+                          ? `<span class="tag">No hours</span>`
+                          : "";
+
+                    return `
+                      <div class="${classes}">
+                        <header class="day-cell-head">
+                          <div>
+                            <strong>${formatWeekday(date)}</strong>
+                            <span>${date.getDate()}</span>
+                          </div>
+                          ${statusLabel}
+                        </header>
+                        <div class="day-cell-body">
+                          ${
+                            !inMonth
+                              ? '<p class="empty-state">Outside month</p>'
+                              : holiday
+                                ? `<p class="empty-state">Holiday: ${holiday.name}</p>`
+                                : day
+                                  ? allocations || '<p class="empty-state">No project hours assigned.</p>'
+                                  : isWeekend(date)
+                                    ? '<p class="empty-state">Weekend</p>'
+                                    : blockedReason
+                                      ? `<p class="empty-state">${blockedReason}</p>`
+                                      : '<p class="empty-state">No project hours assigned.</p>'
+                          }
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
 }
 
 function calculate() {
@@ -589,7 +635,7 @@ function calculate() {
   }
 
   const dayOffEntries = readDayOffEntries(year, month);
-  const { holidays, availableDays } = buildAvailableDays(year, month, dayOffEntries);
+  const { holidays, availableDays, blocked } = buildAvailableDays(year, month, dayOffEntries);
   const projectClones = projects.map((project) => ({ ...project }));
   const allocationResult = allocateHours(year, month, dailyLimit, availableDays, projectClones);
 
@@ -603,7 +649,7 @@ function calculate() {
     dailyLimit,
     allocationResult,
   });
-  renderCalendar(allocationResult.schedule, holidays, availableDays, year, month);
+  renderCalendar(allocationResult.schedule, holidays, blocked, year, month);
 }
 
 document.getElementById("addDayOff").addEventListener("click", () => {
