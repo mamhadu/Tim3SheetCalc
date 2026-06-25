@@ -17,9 +17,18 @@
         <div class="sidebar-panel">
           <h3>My Calendars</h3>
           <div class="calendar-list">
-            <div class="calendar-item active">Timesheet</div>
-            <div class="calendar-item">Portuguese holidays</div>
-            <div class="calendar-item">Days off</div>
+            <div class="calendar-item active" data-calendar-key="timesheet">
+              <span>Timesheet</span><strong id="timesheetCount">0</strong>
+            </div>
+            <div class="calendar-item" data-calendar-key="holidays">
+              <span>Portuguese holidays</span><strong id="holidayCount">0</strong>
+            </div>
+            <div class="calendar-item" data-calendar-key="days-off">
+              <span>Days off</span><strong id="daysOffCount">0</strong>
+            </div>
+            <div class="calendar-item" data-calendar-key="projects">
+              <span>Projects</span><strong id="projectCountLabel">0</strong>
+            </div>
           </div>
         </div>
       </aside>
@@ -27,7 +36,6 @@
       <main class="workspace">
         <header class="toolbar">
           <div class="toolbar-left">
-            <button id="todayButton" class="toolbar-button secondary" type="button">Today</button>
             <button id="prevMonthButton" class="toolbar-button icon" type="button" aria-label="Previous month">
               ‹
             </button>
@@ -38,12 +46,7 @@
           </div>
 
           <div class="toolbar-right">
-            <label class="toolbar-select">
-              <span>View</span>
-              <select id="viewMode">
-                <option>Month</option>
-              </select>
-            </label>
+            <span class="toolbar-view">Month view</span>
           </div>
         </header>
 

@@ -10,7 +10,10 @@ const sidebarMiniCalendars = document.getElementById("sidebarMiniCalendars");
 const toolbarTitle = document.getElementById("toolbarTitle");
 const prevMonthButton = document.getElementById("prevMonthButton");
 const nextMonthButton = document.getElementById("nextMonthButton");
-const todayButton = document.getElementById("todayButton");
+const timesheetCountLabel = document.getElementById("timesheetCount");
+const holidayCountLabel = document.getElementById("holidayCount");
+const daysOffCountLabel = document.getElementById("daysOffCount");
+const projectCountLabel = document.getElementById("projectCountLabel");
 let calculateTimer = null;
 
 const monthNames = [
@@ -51,25 +54,10 @@ function dateKey(date) {
   ).padStart(2, "0")}`;
 }
 
-function formatDate(date) {
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "short",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
-}
-
 function formatMonthDay(date) {
   return new Intl.DateTimeFormat("en-GB", {
     month: "short",
     day: "numeric",
-  }).format(date);
-}
-
-function formatWeekday(date) {
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "short",
   }).format(date);
 }
 
@@ -310,14 +298,7 @@ function shiftMonth(offset) {
   calculate();
 }
 
-function goToToday() {
-  const today = new Date();
-  yearInput.value = String(today.getFullYear());
-  monthSelect.value = String(today.getMonth() + 1);
-  calculate();
-}
-
-function buildMiniCalendar(year, month, label, selected = false) {
+function buildMiniCalendar(year, month, label, selected = false, holidayKeys = new Set(), dayOffKeys = new Set()) {
   const daysInMonth = getDaysInMonth(year, month);
   const firstOfMonth = localDate(year, month, 1);
   const firstWeekStart = addDays(firstOfMonth, -(firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1));
@@ -328,12 +309,15 @@ function buildMiniCalendar(year, month, label, selected = false) {
   for (let week = 0; week < 6; week += 1) {
     for (let day = 0; day < 7; day += 1) {
       const inMonth = cursor.getMonth() + 1 === month && cursor.getFullYear() === year;
+      const key = dateKey(cursor);
       const isToday =
         cursor.getFullYear() === today.getFullYear() &&
         cursor.getMonth() === today.getMonth() &&
         cursor.getDate() === today.getDate();
+      const isHoliday = holidayKeys.has(key);
+      const isDayOff = dayOffKeys.has(key);
       cells.push(`
-        <span class="mini-day ${inMonth ? "in-month" : "out-month"} ${isToday ? "today" : ""}">
+        <span class="mini-day ${inMonth ? "in-month" : "out-month"} ${isToday ? "today" : ""} ${isHoliday ? "holiday" : ""} ${isDayOff ? "dayoff" : ""}">
           ${inMonth ? cursor.getDate() : ""}
         </span>
       `);
@@ -354,12 +338,34 @@ function buildMiniCalendar(year, month, label, selected = false) {
   `;
 }
 
-function renderSidebar(year, month) {
-  const next = clampMonth(year, month + 1);
+function renderSidebar(year, month, holidays = [], dayOffEntries = []) {
+  const holidayKeys = new Set(holidays.map((holiday) => dateKey(holiday.date)));
+  const dayOffKeys = new Set();
+  dayOffEntries.forEach((entry) => {
+    for (let cursor = cloneDate(entry.start); cursor <= entry.end; cursor = addDays(cursor, 1)) {
+      if (cursor.getMonth() + 1 !== month || cursor.getFullYear() !== year) continue;
+      dayOffKeys.add(dateKey(cursor));
+    }
+  });
+
   sidebarMiniCalendars.innerHTML = `
-    ${buildMiniCalendar(year, month, formatToolbarMonth(year, month), true)}
-    ${buildMiniCalendar(next.year, next.month, formatToolbarMonth(next.year, next.month))}
+    ${buildMiniCalendar(year, month, formatToolbarMonth(year, month), true, holidayKeys, dayOffKeys)}
   `;
+}
+
+function updateSidebarCounts({ availableDays, holidays, dayOffEntries, projects, year, month }) {
+  const projectHours = projects.length;
+  const blockedDays = new Set();
+  dayOffEntries.forEach((entry) => {
+    for (let cursor = cloneDate(entry.start); cursor <= entry.end; cursor = addDays(cursor, 1)) {
+      if (cursor.getMonth() + 1 !== month || cursor.getFullYear() !== year) continue;
+      blockedDays.add(dateKey(cursor));
+    }
+  });
+  timesheetCountLabel.textContent = String(availableDays.length);
+  holidayCountLabel.textContent = String(holidays.length);
+  daysOffCountLabel.textContent = String(blockedDays.size);
+  projectCountLabel.textContent = String(projectHours);
 }
 
 function readDayOffEntries(selectedYear, selectedMonth) {
@@ -667,7 +673,7 @@ function renderCalendar(schedule, holidays, blocked, year, month) {
                       "day-cell",
                       inMonth ? "in-month" : "out-month",
                       holiday ? "holiday" : "",
-                      blockedReason ? "blocked" : "",
+                      blockedReason ? "dayoff" : "",
                       date.getFullYear() === today.getFullYear() &&
                       date.getMonth() === today.getMonth() &&
                       date.getDate() === today.getDate()
@@ -706,7 +712,7 @@ function renderCalendar(schedule, holidays, blocked, year, month) {
                                   : isWeekend(date)
                                     ? '<p class="empty-state">Weekend</p>'
                                     : blockedReason
-                                      ? `<p class="empty-state">${blockedReason}</p>`
+                                      ? `<p class="empty-state">Day off${blockedReason ? `: ${blockedReason}` : ""}</p>`
                                       : '<p class="empty-state">No project hours assigned.</p>'
                           }
                         </div>
@@ -757,7 +763,15 @@ function calculate() {
     allocationResult,
   });
   renderCalendar(allocationResult.schedule, holidays, blocked, year, month);
-  renderSidebar(year, month);
+  renderSidebar(year, month, holidays, dayOffEntries);
+  updateSidebarCounts({
+    availableDays,
+    holidays,
+    dayOffEntries,
+    projects,
+    year,
+    month,
+  });
   toolbarTitle.textContent = formatToolbarMonth(year, month);
 }
 
@@ -787,7 +801,6 @@ yearInput.addEventListener("change", calculate);
 dailyLimitInput.addEventListener("change", calculate);
 prevMonthButton.addEventListener("click", () => shiftMonth(-1));
 nextMonthButton.addEventListener("click", () => shiftMonth(1));
-todayButton.addEventListener("click", goToToday);
 projectCountInput.addEventListener("change", () => {
   syncProjects(projectCountInput.value);
   scheduleCalculate();
