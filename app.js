@@ -14,6 +14,7 @@ const timesheetCountLabel = document.getElementById("timesheetCount");
 const holidayCountLabel = document.getElementById("holidayCount");
 const daysOffCountLabel = document.getElementById("daysOffCount");
 const projectCountLabel = document.getElementById("projectCountLabel");
+const allocationBreakdown = document.getElementById("allocationBreakdown");
 let calculateTimer = null;
 
 const monthNames = [
@@ -59,6 +60,14 @@ function formatMonthDay(date) {
     month: "short",
     day: "numeric",
   }).format(date);
+}
+
+function formatHours(value) {
+  return `${Number(value).toFixed(2).replace(/\.00$/, "")}h`;
+}
+
+function formatPercent(value) {
+  return `${Number(value).toFixed(1).replace(/\.0$/, "")}%`;
 }
 
 function formatLongWeekday(date) {
@@ -138,6 +147,30 @@ function getPortugueseHolidays(year) {
 
 function getDaysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
+}
+
+function countWeekdaysInMonth(year, month) {
+  let count = 0;
+  const daysInMonth = getDaysInMonth(year, month);
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    if (!isWeekend(localDate(year, month, day))) count += 1;
+  }
+  return count;
+}
+
+function collectWorkingDayKeysInRange(start, end, year, month, holidayKeys = new Set()) {
+  const rangeStart = start <= end ? start : end;
+  const rangeEnd = start <= end ? end : start;
+  const keys = new Set();
+
+  for (let cursor = cloneDate(rangeStart); cursor <= rangeEnd; cursor = addDays(cursor, 1)) {
+    if (cursor.getMonth() + 1 !== month || cursor.getFullYear() !== year) continue;
+    if (isWeekend(cursor)) continue;
+    if (holidayKeys.has(dateKey(cursor))) continue;
+    keys.add(dateKey(cursor));
+  }
+
+  return keys;
 }
 
 function parseDateInput(value) {
@@ -359,12 +392,9 @@ function renderSidebar(year, month, holidays = [], dayOffEntries = []) {
   const holidayKeys = new Set(holidays.map((holiday) => dateKey(holiday.date)));
   const dayOffKeys = new Set();
   dayOffEntries.forEach((entry) => {
-    for (let cursor = cloneDate(entry.start); cursor <= entry.end; cursor = addDays(cursor, 1)) {
-      if (cursor.getMonth() + 1 !== month || cursor.getFullYear() !== year) continue;
-      if (isWeekend(cursor)) continue;
-      if (holidayKeys.has(dateKey(cursor))) continue;
-      dayOffKeys.add(dateKey(cursor));
-    }
+    collectWorkingDayKeysInRange(entry.start, entry.end, year, month, holidayKeys).forEach((key) =>
+      dayOffKeys.add(key)
+    );
   });
 
   sidebarMiniCalendars.innerHTML = `
@@ -372,17 +402,79 @@ function renderSidebar(year, month, holidays = [], dayOffEntries = []) {
   `;
 }
 
+function updateSidebarAllocation({
+  year,
+  month,
+  dailyLimit,
+  weekdayCapacityHours,
+  holidays,
+  dayOffEntries,
+  projects,
+}) {
+  const holidayWeekdays = holidays.filter((holiday) => !isWeekend(holiday.date));
+  const holidayKeys = new Set(holidays.map((holiday) => dateKey(holiday.date)));
+  const blockedDays = new Set();
+
+  dayOffEntries.forEach((entry) => {
+    collectWorkingDayKeysInRange(entry.start, entry.end, year, month, holidayKeys).forEach((key) =>
+      blockedDays.add(key)
+    );
+  });
+
+  const holidayHours = holidayWeekdays.length * dailyLimit;
+  const dayOffHours = blockedDays.size * dailyLimit;
+  const rows = holidayWeekdays.length
+    ? [
+        `
+      <div class="allocation-item allocation-item-holiday">
+        <div class="allocation-item-copy">
+          <strong>Holidays</strong>
+          <span>${formatHours(holidayHours)}</span>
+        </div>
+        <strong class="allocation-item-percent">${formatPercent(
+          weekdayCapacityHours > 0 ? (holidayHours / weekdayCapacityHours) * 100 : 0
+        )}</strong>
+      </div>
+    `,
+      ]
+    : [];
+
+  projects.forEach((project) => {
+    const percent = weekdayCapacityHours > 0 ? (project.hours / weekdayCapacityHours) * 100 : 0;
+    rows.push(`
+      <div class="allocation-item">
+        <div class="allocation-item-copy">
+          <strong>${project.name}</strong>
+          <span>${formatHours(project.hours)}</span>
+        </div>
+        <strong class="allocation-item-percent">${formatPercent(percent)}</strong>
+      </div>
+    `);
+  });
+
+  rows.push(`
+    <div class="allocation-item allocation-item-muted">
+      <div class="allocation-item-copy">
+        <strong>Days off</strong>
+        <span>${formatHours(dayOffHours)}</span>
+      </div>
+      <strong class="allocation-item-percent">${formatPercent(
+        weekdayCapacityHours > 0 ? (dayOffHours / weekdayCapacityHours) * 100 : 0
+      )}</strong>
+    </div>
+  `);
+
+  allocationBreakdown.innerHTML = rows.join("");
+}
+
 function updateSidebarCounts({ availableDays, holidays, dayOffEntries, projects, year, month }) {
   const projectHours = projects.length;
   const holidayKeys = new Set(holidays.map((holiday) => dateKey(holiday.date)));
   const blockedDays = new Set();
   dayOffEntries.forEach((entry) => {
-    for (let cursor = cloneDate(entry.start); cursor <= entry.end; cursor = addDays(cursor, 1)) {
-      if (cursor.getMonth() + 1 !== month || cursor.getFullYear() !== year) continue;
-      if (isWeekend(cursor)) continue;
-      if (holidayKeys.has(dateKey(cursor))) continue;
-      blockedDays.add(dateKey(cursor));
-    }
+    collectWorkingDayKeysInRange(entry.start, entry.end, year, month, holidayKeys).forEach((key) =>
+      blockedDays.add(key)
+    );
   });
   timesheetCountLabel.textContent = String(availableDays.length);
   holidayCountLabel.textContent = String(holidays.length);
@@ -401,15 +493,16 @@ function readDayOffEntries(selectedYear, selectedMonth) {
     const end = parseDateInput(row.querySelector(".day-off-end").value);
     if (!start || !end) return;
 
-    const normalizedEnd = end < start ? start : end;
-    if (normalizedEnd < monthStart || start > monthEnd) return;
+    const rangeStart = start <= end ? start : end;
+    const rangeEnd = start <= end ? end : start;
+    if (rangeEnd < monthStart || rangeStart > monthEnd) return;
 
     entries.push({
-      key: `${start.toISOString().slice(0, 10)}-${normalizedEnd
+      key: `${rangeStart.toISOString().slice(0, 10)}-${rangeEnd
         .toISOString()
         .slice(0, 10)}-${index}`,
-      start,
-      end: normalizedEnd,
+      start: rangeStart,
+      end: rangeEnd,
       note,
     });
   });
@@ -464,17 +557,11 @@ function buildAvailableDays(year, month, dayOffEntries) {
 
   const blocked = new Map();
   dayOffEntries.forEach((entry) => {
-    for (
-      let cursor = cloneDate(entry.start);
-      cursor <= entry.end;
-      cursor = addDays(cursor, 1)
-    ) {
-      if (cursor.getMonth() + 1 !== month) continue;
-      if (cursor.getFullYear() !== year) continue;
-      if (isWeekend(cursor)) continue;
-      if (holidayLookup.has(dateKey(cursor))) continue;
-      blocked.set(dateKey(cursor), entry.note || "Day off");
-    }
+    collectWorkingDayKeysInRange(entry.start, entry.end, year, month, new Set(holidayLookup.keys())).forEach(
+      (key) => {
+        blocked.set(key, entry.note || "Day off");
+      }
+    );
   });
 
   const availableDays = [];
@@ -598,7 +685,7 @@ function renderSummary({
           .map((holiday) => `${holiday.name} (${formatMonthDay(holiday.date)})`)
           .join(", ") || "None",
     },
-    { label: "Days off entered", value: String(dayOffEntries.length) },
+    { label: "Days off entries", value: String(dayOffEntries.length) },
     { label: "Available hours", value: `${availableHours.toFixed(2).replace(/\.00$/, "")}h` },
     { label: "Project hours", value: `${projectHours.toFixed(2).replace(/\.00$/, "")}h` },
     { label: "Used hours", value: `${utilizedHours.toFixed(2).replace(/\.00$/, "")}h` },
@@ -777,6 +864,7 @@ function calculate() {
   const dayOffEntries = readDayOffEntries(year, month);
   const { holidays, availableDays, blocked } = buildAvailableDays(year, month, dayOffEntries);
   const availableHours = availableDays.length * dailyLimit;
+  const weekdayCapacityHours = countWeekdaysInMonth(year, month) * dailyLimit;
   const projectClones = resolveProjectTargets(projects, availableHours);
   const allocationResult = allocateHours(year, month, dailyLimit, availableDays, projectClones);
 
@@ -792,6 +880,15 @@ function calculate() {
   });
   renderCalendar(allocationResult.schedule, holidays, blocked, year, month);
   renderSidebar(year, month, holidays, dayOffEntries);
+  updateSidebarAllocation({
+    year,
+    month,
+    dailyLimit,
+    weekdayCapacityHours,
+    holidays,
+    dayOffEntries,
+    projects: projectClones,
+  });
   updateSidebarCounts({
     availableDays,
     holidays,

@@ -56,6 +56,13 @@ body {
   box-shadow: var(--shadow);
 }
 
+.sidebar-note {
+  margin: -2px 0 8px;
+  color: #9f9f9f;
+  font-size: 0.6rem;
+  line-height: 1.35;
+}
+
 .sidebar-actions {
   display: grid;
 }
@@ -97,6 +104,57 @@ body {
 
 .calendar-item span {
   min-width: 0;
+}
+
+.allocation-breakdown {
+  display: grid;
+  gap: 6px;
+}
+
+.allocation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.allocation-item-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.allocation-item-copy strong {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #f4f4f4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.allocation-item-copy span {
+  font-size: 0.62rem;
+  color: #a7a7a7;
+}
+
+.allocation-item-percent {
+  flex: none;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #d7ebff;
+}
+
+.allocation-item-muted .allocation-item-percent {
+  color: #c8f2ad;
+}
+
+.allocation-item-holiday .allocation-item-percent {
+  color: #ffd7df;
 }
 
 .sidebar .field-row,
