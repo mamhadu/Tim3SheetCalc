@@ -790,11 +790,6 @@ document.getElementById("addDayOff").addEventListener("click", () => {
   scheduleCalculate();
 });
 
-document.getElementById("syncProjects").addEventListener("click", () => {
-  syncProjects(projectCountInput.value);
-  scheduleCalculate();
-});
-
 document.getElementById("calculate").addEventListener("click", calculate);
 monthSelect.addEventListener("change", calculate);
 yearInput.addEventListener("change", calculate);
