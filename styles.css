@@ -45,49 +45,49 @@ body::before {
 }
 
 .shell {
-  width: min(1080px, calc(100% - 24px));
+  width: min(1760px, calc(100% - 24px));
   margin: 0 auto;
-  padding: 16px 0 20px;
+  padding: 10px 0 12px;
 }
 
 .hero {
-  padding: 8px 0 14px;
+  padding: 4px 0 8px;
 }
 
 .eyebrow {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   color: var(--accent-strong);
 }
 
 h1 {
   margin: 0;
-  max-width: 18ch;
-  font-size: clamp(1.6rem, 2.8vw, 2.6rem);
+  max-width: 22ch;
+  font-size: clamp(1.5rem, 2vw, 2.2rem);
   line-height: 1.02;
 }
 
 .lede {
-  margin: 8px 0 0;
-  max-width: 72ch;
-  font-size: 0.9rem;
-  line-height: 1.45;
+  margin: 4px 0 0;
+  max-width: 82ch;
+  font-size: 0.78rem;
+  line-height: 1.35;
   color: var(--muted);
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .panel {
   grid-column: span 12;
-  padding: 14px;
+  padding: 10px;
   border: 1px solid var(--panel-border);
-  border-radius: 18px;
+  border-radius: 14px;
   background: var(--panel);
   box-shadow: var(--shadow);
   backdrop-filter: blur(12px);
@@ -95,14 +95,14 @@ h1 {
 
 .panel h2 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.88rem;
 }
 
 .panel-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 8px;
 }
 
@@ -110,13 +110,13 @@ h1 {
 .inline-controls {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 label {
   display: grid;
-  gap: 6px;
-  font-size: 0.82rem;
+  gap: 4px;
+  font-size: 0.74rem;
   color: var(--muted);
 }
 
@@ -130,8 +130,8 @@ input,
 select {
   width: 100%;
   border: 1px solid rgba(85, 62, 42, 0.18);
-  border-radius: 12px;
-  padding: 10px 12px;
+  border-radius: 10px;
+  padding: 8px 10px;
   background: rgba(255, 255, 255, 0.92);
   color: var(--ink);
 }
@@ -145,13 +145,13 @@ button:focus {
 
 button {
   border: 0;
-  border-radius: 12px;
-  padding: 10px 14px;
+  border-radius: 10px;
+  padding: 8px 12px;
   background: linear-gradient(180deg, #a85b35, #7f4025);
   color: white;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(127, 64, 37, 0.18);
+  box-shadow: 0 6px 14px rgba(127, 64, 37, 0.16);
 }
 
 button.secondary {
@@ -166,41 +166,41 @@ button:hover {
 }
 
 .hint {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   color: var(--muted);
-  line-height: 1.4;
-  font-size: 0.82rem;
+  line-height: 1.3;
+  font-size: 0.72rem;
 }
 
 .stack {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .day-off-row,
 .project-row,
 .result-card {
   border: 1px solid rgba(85, 62, 42, 0.12);
-  border-radius: 16px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.86);
-  padding: 12px;
+  padding: 10px;
 }
 
 .row-top {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .row-top strong {
-  font-size: 0.92rem;
+  font-size: 0.82rem;
 }
 
 .row-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .panel-actions {
@@ -210,58 +210,58 @@ button:hover {
 
 .panel-actions button {
   min-width: 220px;
-  padding: 12px 16px;
+  padding: 10px 14px;
 }
 
 .results {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px;
 }
 
 .summary-item {
   border: 1px solid rgba(85, 62, 42, 0.12);
-  border-radius: 14px;
+  border-radius: 12px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 240, 232, 0.92));
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .summary-item span {
   display: block;
   color: var(--muted);
-  font-size: 0.74rem;
-  margin-bottom: 6px;
+  font-size: 0.66rem;
+  margin-bottom: 4px;
 }
 
 .summary-item strong {
-  font-size: 1rem;
+  font-size: 0.88rem;
 }
 
 .calendar {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .week-view {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .weekday-headers,
 .week-row {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .weekday-header {
-  padding: 0 10px;
-  font-size: 0.7rem;
+  padding: 0 8px;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -270,13 +270,13 @@ button:hover {
 
 .day-cell {
   display: grid;
-  gap: 6px;
-  min-height: 112px;
-  padding: 10px;
+  gap: 4px;
+  min-height: 84px;
+  padding: 8px;
   border: 1px solid rgba(85, 62, 42, 0.12);
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 6px 14px rgba(57, 38, 22, 0.05);
+  box-shadow: 0 4px 10px rgba(57, 38, 22, 0.05);
 }
 
 .day-cell.out-month {
@@ -299,25 +299,25 @@ button:hover {
 .day-cell-head {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   align-items: flex-start;
 }
 
 .day-cell-head strong {
   display: block;
-  font-size: 0.84rem;
+  font-size: 0.72rem;
 }
 
 .day-cell-head span {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.64rem;
 }
 
 .tag {
   align-self: flex-start;
-  padding: 4px 8px;
+  padding: 3px 7px;
   border-radius: 999px;
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   background: var(--accent-soft);
@@ -336,24 +336,24 @@ button:hover {
 
 .allocation {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .allocation-row {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 10px;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 8px;
   background: rgba(143, 77, 47, 0.06);
-  font-size: 0.74rem;
+  font-size: 0.62rem;
 }
 
 .empty-state {
   margin: 0;
   color: var(--muted);
   font-style: italic;
-  font-size: 0.74rem;
+  font-size: 0.62rem;
 }
 
 .error {
@@ -362,19 +362,41 @@ button:hover {
   background: rgba(255, 235, 235, 0.9);
 }
 
-@media (min-width: 960px) {
-  .panel:nth-child(1),
-  .panel:nth-child(2),
+@media (min-width: 1200px) {
+  .grid {
+    grid-template-columns: 360px minmax(0, 1fr);
+    grid-auto-rows: min-content;
+    align-items: start;
+  }
+
+  .panel:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .panel:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
   .panel:nth-child(3) {
-    grid-column: span 4;
+    grid-column: 1;
+    grid-row: 3;
   }
 
   .panel:nth-child(4) {
-    grid-column: span 12;
+    grid-column: 1;
+    grid-row: 4;
   }
 
   .panel:nth-child(5) {
-    grid-column: span 12;
+    grid-column: 2;
+    grid-row: 1 / span 4;
+  }
+
+  .results {
+    min-height: calc(100vh - 140px);
+    align-content: start;
   }
 }
 
