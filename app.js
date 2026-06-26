@@ -23,7 +23,6 @@ const holidayConfigPicker = document.getElementById("holidayConfigPicker");
 let calculateTimer = null;
 let holidayConfig = null;
 let latestHolidaySnapshot = null;
-let importedHolidaySnapshot = null;
 let holidayConfigSource = "json";
 let holidayConfigFileName = "holidays.json";
 const holidayRuntimeCache = new Map();
@@ -205,28 +204,8 @@ function recordHolidaySnapshot(year, source, holidays, updatedAt = new Date().to
   };
 }
 
-function normalizeResolvedSnapshot(snapshot) {
-  if (!snapshot || !Array.isArray(snapshot.holidays)) {
-    return null;
-  }
-
-  const holidays = snapshot.holidays.map(normalizeStoredHoliday).filter(Boolean);
-  const year = Number(snapshot.year);
-  if (!Number.isInteger(year) || !holidays.length) {
-    return null;
-  }
-
-  return {
-    year,
-    source: snapshot.source || "resolved holiday snapshot",
-    updatedAt: snapshot.updatedAt || null,
-    holidays,
-  };
-}
-
 function applyHolidayConfig(rawConfig, source, fileName = "holidays.json") {
   holidayConfig = normalizeHolidayConfig(rawConfig);
-  importedHolidaySnapshot = normalizeResolvedSnapshot(rawConfig?.resolved);
   holidayConfigSource = source;
   holidayConfigFileName = fileName;
   return holidayConfig;
@@ -347,14 +326,6 @@ function writeCachedHolidayYear(year, payload) {
   }
 }
 
-function buildHolidayExportPayload(config) {
-  const exportPayload = JSON.parse(JSON.stringify(config));
-  if (latestHolidaySnapshot) {
-    exportPayload.resolved = latestHolidaySnapshot;
-  }
-  return exportPayload;
-}
-
 function downloadJsonFile(filename, payload) {
   const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], {
     type: "application/json;charset=utf-8",
@@ -378,15 +349,6 @@ async function getPortugueseHolidays(year, { preferOnline = false } = {}) {
   const config = await loadHolidayConfig();
 
   if (!preferOnline) {
-    if (importedHolidaySnapshot?.year === year) {
-      recordHolidaySnapshot(year, importedHolidaySnapshot.source, importedHolidaySnapshot.holidays, importedHolidaySnapshot.updatedAt);
-      holidaySourceLabel.textContent =
-        holidayConfigSource === "picker"
-          ? `Using refreshed holidays from selected file: ${holidayConfigFileName}.`
-          : "Using refreshed holidays embedded in holidays.json.";
-      return importedHolidaySnapshot.holidays;
-    }
-
     const localHolidays = buildLocalHolidayList(year, config);
     const sourceLabel = holidayConfigSource === "picker" ? "selected holidays.json" : "local rules";
     recordHolidaySnapshot(year, sourceLabel, localHolidays);
@@ -530,6 +492,7 @@ function makeDayOffRow(index) {
   removeButton.addEventListener("click", () => {
     wrapper.remove();
     renumberRows(dayOffList, "Day off");
+    scheduleCalculate();
   });
 
   return wrapper;
@@ -1284,17 +1247,12 @@ refreshHolidaysButton.addEventListener("click", () => {
     });
 });
 downloadHolidaysButton.addEventListener("click", async () => {
-  const year = Number(yearInput.value);
   downloadHolidaysButton.disabled = true;
 
   try {
     const config = await loadHolidayConfig();
-    if (!latestHolidaySnapshot || latestHolidaySnapshot.year !== year) {
-      await getPortugueseHolidays(year);
-    }
-
-    downloadJsonFile(`holidays-${year}.json`, buildHolidayExportPayload(config));
-    holidaySourceLabel.textContent = `Downloaded holiday export for ${year}.`;
+    downloadJsonFile(holidayConfigFileName || "holidays.json", config);
+    holidaySourceLabel.textContent = "Downloaded holiday rules file.";
   } catch (error) {
     console.error(error);
     holidaySourceLabel.textContent = "Holiday export failed.";

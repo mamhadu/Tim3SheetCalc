@@ -19,6 +19,12 @@
       "type": "national"
     },
     {
+      "month": 6,
+      "day": 10,
+      "name": "Portugal Day",
+      "type": "national"
+    },
+    {
       "month": 8,
       "day": 15,
       "name": "Assumption of Mary",
@@ -57,8 +63,18 @@
   ],
   "movable": [
     {
+      "name": "Carnival",
+      "offsetDays": -47,
+      "type": "national"
+    },
+    {
       "name": "Good Friday",
       "offsetDays": -2,
+      "type": "national"
+    },
+    {
+      "name": "Easter Sunday",
+      "offsetDays": 0,
       "type": "national"
     },
     {
@@ -81,88 +97,5 @@
       "url": "https://date.nager.at/api/v3/PublicHolidays/{year}/PT",
       "type": "api"
     }
-  ],
-  "resolved": {
-    "year": 2026,
-    "source": "Nager.Date public holidays API",
-    "updatedAt": "2026-06-26T10:30:23.209Z",
-    "holidays": [
-      {
-        "date": "2026-01-01",
-        "name": "New Year's Day",
-        "type": "national"
-      },
-      {
-        "date": "2026-02-17",
-        "name": "Carnival",
-        "type": "national"
-      },
-      {
-        "date": "2026-04-03",
-        "name": "Good Friday",
-        "type": "national"
-      },
-      {
-        "date": "2026-04-05",
-        "name": "Easter Sunday",
-        "type": "national"
-      },
-      {
-        "date": "2026-04-25",
-        "name": "Freedom Day",
-        "type": "national"
-      },
-      {
-        "date": "2026-05-01",
-        "name": "Labour Day",
-        "type": "national"
-      },
-      {
-        "date": "2026-06-04",
-        "name": "Corpus Christi",
-        "type": "national"
-      },
-      {
-        "date": "2026-06-10",
-        "name": "National Day",
-        "type": "national"
-      },
-      {
-        "date": "2026-08-15",
-        "name": "Assumption Day",
-        "type": "national"
-      },
-      {
-        "date": "2026-10-05",
-        "name": "Republic Day",
-        "type": "national"
-      },
-      {
-        "date": "2026-11-01",
-        "name": "All Saints Day",
-        "type": "national"
-      },
-      {
-        "date": "2026-12-01",
-        "name": "Restoration of Independence",
-        "type": "national"
-      },
-      {
-        "date": "2026-12-08",
-        "name": "Immaculate Conception",
-        "type": "national"
-      },
-      {
-        "date": "2026-12-25",
-        "name": "Christmas Day",
-        "type": "national"
-      },
-      {
-        "date": "2026-06-13",
-        "name": "Lisbon municipal holiday",
-        "type": "municipal"
-      }
-    ]
-  }
+  ]
 }
-

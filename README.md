@@ -21,9 +21,9 @@ The file currently contains:
 - `movable`: holidays calculated from Easter using day offsets
 - `municipal`: Lisbon municipal holidays
 - `onlineSources`: the API endpoint used by the refresh action
-- `resolved`: optional downloaded snapshot for a specific year after an online refresh
 
-If a `resolved` block exists for the selected year, the app uses that refreshed snapshot for that year. Otherwise it builds the holiday list from `fixed`, `movable`, and `municipal`.
+The app always builds the holiday list from `fixed`, `movable`, and `municipal`.
+Online refresh is temporary cache for the current browser, not data written back into `holidays.json`.
 
 ## Running the app
 
@@ -93,15 +93,9 @@ The current source is:
 
 Exports a JSON file containing:
 
-- the current rule sections from `holidays.json`
-- the latest refreshed `resolved` holiday snapshot for the selected year
+- the current holiday rules from `holidays.json`
 
-This lets you:
-
-1. refresh online
-2. download the exported file
-3. load that file again with **Choose holidays.json**
-4. keep using the refreshed holiday list for that year
+This is useful for keeping a clean editable rules file or downloading the currently selected file again after manual changes.
 
 ## Editing holidays manually
 
@@ -112,5 +106,6 @@ Examples:
 - Remove a fixed holiday from `fixed`
 - Add or remove a municipal holiday from `municipal`
 - Change a movable holiday offset in `movable`
+- Add `Carnival` as a movable holiday using `offsetDays: -47`
 
 Invalid or incomplete holiday entries are ignored instead of crashing the app.
