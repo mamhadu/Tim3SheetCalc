@@ -50,6 +50,14 @@
               <input id="dailyLimit" type="number" min="1" step="1" value="8" />
             </label>
           </div>
+          <div class="sidebar-actions">
+            <button id="chooseHolidaysButton" class="secondary" type="button">Choose holidays.json</button>
+            <button id="refreshHolidaysButton" class="secondary" type="button">Refresh holidays online</button>
+            <button id="downloadHolidaysButton" class="secondary" type="button">Download holidays.json</button>
+            <p id="holidaySourceLabel" class="sidebar-note">
+              Holiday rules always come from `holidays.json`. If you open the app without a server, choose the file manually.
+            </p>
+          </div>
         </div>
 
       </aside>
@@ -107,5 +115,6 @@
         </section>
       </main>
     </div>
+    <input id="holidayConfigPicker" type="file" accept=".json,application/json" hidden />
   </body>
 </html>

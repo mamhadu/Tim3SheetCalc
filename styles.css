@@ -122,6 +122,15 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.allocation-item-color {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--project-color, rgba(43, 136, 255, 0.95));
+  box-shadow: 0 0 0 3px var(--project-color-soft, rgba(43, 136, 255, 0.18));
+}
+
 .allocation-item-copy {
   display: grid;
   gap: 2px;
@@ -155,6 +164,16 @@ body {
 
 .allocation-item-holiday .allocation-item-percent {
   color: #ffd7df;
+}
+
+.allocation-item-holiday .allocation-item-color {
+  background: rgba(245, 144, 160, 0.95);
+  box-shadow: 0 0 0 3px rgba(245, 144, 160, 0.18);
+}
+
+.allocation-item-muted .allocation-item-color {
+  background: #c8f2ad;
+  box-shadow: 0 0 0 3px rgba(200, 242, 173, 0.16);
 }
 
 .sidebar .field-row,
@@ -479,7 +498,7 @@ button:focus,
   gap: 4px;
   padding: 2px 4px;
   border-radius: 4px;
-  background: rgba(124, 193, 75, 0.74);
+  background: var(--project-color, rgba(124, 193, 75, 0.74));
   color: #fff;
   font-size: 0.58rem;
   line-height: 1.2;
@@ -568,6 +587,13 @@ label {
   padding: 8px;
 }
 
+.project-row {
+  border-left: 3px solid var(--project-color, rgba(43, 136, 255, 0.95));
+  background:
+    linear-gradient(180deg, var(--project-color-soft, rgba(43, 136, 255, 0.12)), rgba(255, 255, 255, 0.01)),
+    #262626;
+}
+
 .row-top {
   display: flex;
   justify-content: space-between;
@@ -577,6 +603,21 @@ label {
 
 .row-top strong {
   font-size: 0.68rem;
+}
+
+.project-row-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.project-color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--project-color, rgba(43, 136, 255, 0.95));
+  box-shadow: 0 0 0 3px var(--project-color-soft, rgba(43, 136, 255, 0.12));
+  flex: none;
 }
 
 .row-grid {

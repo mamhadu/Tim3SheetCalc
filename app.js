@@ -15,7 +15,31 @@ const holidayCountLabel = document.getElementById("holidayCount");
 const daysOffCountLabel = document.getElementById("daysOffCount");
 const projectCountLabel = document.getElementById("projectCountLabel");
 const allocationBreakdown = document.getElementById("allocationBreakdown");
+const chooseHolidaysButton = document.getElementById("chooseHolidaysButton");
+const refreshHolidaysButton = document.getElementById("refreshHolidaysButton");
+const downloadHolidaysButton = document.getElementById("downloadHolidaysButton");
+const holidaySourceLabel = document.getElementById("holidaySourceLabel");
+const holidayConfigPicker = document.getElementById("holidayConfigPicker");
 let calculateTimer = null;
+let holidayConfig = null;
+let latestHolidaySnapshot = null;
+let importedHolidaySnapshot = null;
+let holidayConfigSource = "json";
+let holidayConfigFileName = "holidays.json";
+const holidayRuntimeCache = new Map();
+const holidayCachePrefix = "timesheet-holiday-cache";
+const holidayConfigUrl = "./holidays.json";
+
+const projectColorPalette = [
+  { color: "#4f8cff", soft: "rgba(79, 140, 255, 0.18)" },
+  { color: "#32c7a1", soft: "rgba(50, 199, 161, 0.18)" },
+  { color: "#ff9f43", soft: "rgba(255, 159, 67, 0.18)" },
+  { color: "#f25f8b", soft: "rgba(242, 95, 139, 0.18)" },
+  { color: "#a78bfa", soft: "rgba(167, 139, 250, 0.18)" },
+  { color: "#22c55e", soft: "rgba(34, 197, 94, 0.18)" },
+  { color: "#06b6d4", soft: "rgba(6, 182, 212, 0.18)" },
+  { color: "#f97316", soft: "rgba(249, 115, 22, 0.18)" },
+];
 
 const monthNames = [
   "janeiro",
@@ -30,19 +54,6 @@ const monthNames = [
   "outubro",
   "novembro",
   "dezembro",
-];
-
-const fixedPortugueseHolidays = [
-  { month: 1, day: 1, name: "New Year" },
-  { month: 4, day: 25, name: "Freedom Day" },
-  { month: 5, day: 1, name: "Labour Day" },
-  { month: 6, day: 10, name: "Portugal Day" },
-  { month: 8, day: 15, name: "Assumption of Mary" },
-  { month: 10, day: 5, name: "Republic Day" },
-  { month: 11, day: 1, name: "All Saints' Day" },
-  { month: 12, day: 1, name: "Restoration of Independence" },
-  { month: 12, day: 8, name: "Immaculate Conception" },
-  { month: 12, day: 25, name: "Christmas Day" },
 ];
 
 function localDate(year, month, day) {
@@ -116,33 +127,306 @@ function getEasterSunday(year) {
   return localDate(year, month, day);
 }
 
-function getPortugueseHolidays(year) {
-  const easter = getEasterSunday(year);
-  const holidays = fixedPortugueseHolidays.map((holiday) => ({
-    date: localDate(year, holiday.month, holiday.day),
+function serializeHoliday(holiday) {
+  return {
+    date: dateKey(holiday.date),
     name: holiday.name,
-    type: "national",
-  }));
+    type: holiday.type || "national",
+  };
+}
 
-  holidays.push({
-    date: addDays(easter, -2),
-    name: "Good Friday",
-    type: "national",
+function isValidMonthDay(month, day) {
+  return Number.isInteger(month) && month >= 1 && month <= 12 && Number.isInteger(day) && day >= 1 && day <= 31;
+}
+
+function normalizeHolidayConfig(rawConfig) {
+  const config = rawConfig && typeof rawConfig === "object" ? rawConfig : {};
+  return {
+    fixed: Array.isArray(config.fixed)
+      ? config.fixed.filter(
+          (holiday) => holiday && isValidMonthDay(Number(holiday.month), Number(holiday.day)) && holiday.name
+        )
+      : [],
+    movable: Array.isArray(config.movable)
+      ? config.movable.filter(
+          (holiday) => holiday && Number.isFinite(Number(holiday.offsetDays)) && holiday.name
+        )
+      : [],
+    municipal: Array.isArray(config.municipal)
+      ? config.municipal.filter(
+          (holiday) => holiday && isValidMonthDay(Number(holiday.month), Number(holiday.day)) && holiday.name
+        )
+      : [],
+    onlineSources: Array.isArray(config.onlineSources)
+      ? config.onlineSources.filter((source) => source && typeof source.url === "string" && source.url)
+      : [],
+  };
+}
+
+function normalizeStoredHoliday(holiday) {
+  if (!holiday) return null;
+
+  const date =
+    holiday.date instanceof Date
+      ? holiday.date
+      : typeof holiday.date === "string"
+        ? parseDateInput(holiday.date)
+        : null;
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return {
+    date,
+    name: holiday.name || "Holiday",
+    type: holiday.type || "national",
+  };
+}
+
+function setHolidayConfigUnavailable(message) {
+  holidaySourceLabel.textContent = message;
+  summary.innerHTML = '<div class="summary-item error"><strong>Load holidays.json to continue.</strong></div>';
+  calendar.innerHTML = '<p class="empty-state">Holiday configuration is required before the calendar can be calculated.</p>';
+}
+
+function getHolidayConfigLoadHelpMessage() {
+  return window.location.protocol === "file:"
+    ? "Browser blocked automatic local JSON loading over file://. Choose holidays.json to continue."
+    : "Holiday rules could not be loaded from holidays.json.";
+}
+
+function recordHolidaySnapshot(year, source, holidays, updatedAt = new Date().toISOString()) {
+  latestHolidaySnapshot = {
+    year,
+    source,
+    updatedAt,
+    holidays: holidays.map(serializeHoliday),
+  };
+}
+
+function normalizeResolvedSnapshot(snapshot) {
+  if (!snapshot || !Array.isArray(snapshot.holidays)) {
+    return null;
+  }
+
+  const holidays = snapshot.holidays.map(normalizeStoredHoliday).filter(Boolean);
+  const year = Number(snapshot.year);
+  if (!Number.isInteger(year) || !holidays.length) {
+    return null;
+  }
+
+  return {
+    year,
+    source: snapshot.source || "resolved holiday snapshot",
+    updatedAt: snapshot.updatedAt || null,
+    holidays,
+  };
+}
+
+function applyHolidayConfig(rawConfig, source, fileName = "holidays.json") {
+  holidayConfig = normalizeHolidayConfig(rawConfig);
+  importedHolidaySnapshot = normalizeResolvedSnapshot(rawConfig?.resolved);
+  holidayConfigSource = source;
+  holidayConfigFileName = fileName;
+  return holidayConfig;
+}
+
+async function readHolidayConfigFromFile(file) {
+  const text = await file.text();
+  const parsed = JSON.parse(text);
+  return applyHolidayConfig(parsed, "picker", file.name || "holidays.json");
+}
+
+async function loadHolidayConfig() {
+  if (holidayConfig) {
+    return holidayConfig;
+  }
+
+  try {
+    const response = await fetch(holidayConfigUrl, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Failed to load ${holidayConfigUrl}: ${response.status}`);
+    }
+
+    return applyHolidayConfig(await response.json(), "json", "holidays.json");
+  } catch (error) {
+    console.warn(error);
+    holidayConfigSource = "unavailable";
+    throw new Error("holidays.json could not be loaded automatically.");
+  }
+}
+
+function buildLocalHolidayList(year, config) {
+  const holidays = [];
+  const fixed = config.fixed || [];
+  const movable = config.movable || [];
+  const municipal = config.municipal || [];
+
+  fixed.forEach((holiday) => {
+    holidays.push({
+      date: localDate(year, holiday.month, holiday.day),
+      name: holiday.name,
+      type: holiday.type || "national",
+    });
   });
 
-  holidays.push({
-    date: addDays(easter, 60),
-    name: "Corpus Christi",
-    type: "national",
+  const easter = getEasterSunday(year);
+  movable.forEach((holiday) => {
+    holidays.push({
+      date: addDays(easter, holiday.offsetDays),
+      name: holiday.name,
+      type: holiday.type || "national",
+    });
   });
 
-  holidays.push({
-    date: localDate(year, 6, 13),
-    name: "Lisbon municipal holiday",
-    type: "municipal",
+  municipal.forEach((holiday) => {
+    holidays.push({
+      date: localDate(year, holiday.month, holiday.day),
+      name: holiday.name,
+      type: holiday.type || "municipal",
+    });
   });
 
   return holidays;
+}
+
+async function fetchOnlineHolidayList(year, config) {
+  const sources = config.onlineSources || [];
+  const source = sources.find((entry) => entry.url) || null;
+  if (!source) {
+    return [];
+  }
+
+  const response = await fetch(source.url.replace("{year}", String(year)));
+  if (!response.ok) {
+    throw new Error(`Failed to load holiday data from ${source.name || source.url}`);
+  }
+
+  const payload = await response.json();
+  return payload
+    .filter((item) => item && item.date)
+    .filter((item) => item.global !== false)
+    .map((item) => {
+      const [itemYear, itemMonth, itemDay] = item.date.split("-").map(Number);
+      return {
+        date: localDate(itemYear, itemMonth, itemDay),
+        name: item.name || item.localName || "Holiday",
+        type: item.type === "Public" ? "national" : item.type || "national",
+      };
+    })
+    .filter((holiday) => holiday.date && !Number.isNaN(holiday.date.getTime()));
+}
+
+function cacheKeyForHolidayYear(year) {
+  return `${holidayCachePrefix}:${year}`;
+}
+
+function readCachedHolidayYear(year) {
+  try {
+    const raw = localStorage.getItem(cacheKeyForHolidayYear(year));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.holidays)) return null;
+    const holidays = parsed.holidays.map(normalizeStoredHoliday).filter(Boolean);
+    if (!holidays.length) return null;
+    return {
+      ...parsed,
+      holidays,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedHolidayYear(year, payload) {
+  try {
+    localStorage.setItem(cacheKeyForHolidayYear(year), JSON.stringify(payload));
+  } catch {
+    // Ignore storage failures; the runtime cache still keeps the data for this session.
+  }
+}
+
+function buildHolidayExportPayload(config) {
+  const exportPayload = JSON.parse(JSON.stringify(config));
+  if (latestHolidaySnapshot) {
+    exportPayload.resolved = latestHolidaySnapshot;
+  }
+  return exportPayload;
+}
+
+function downloadJsonFile(filename, payload) {
+  const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], {
+    type: "application/json;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function chooseHolidayConfigFile() {
+  holidayConfigPicker.value = "";
+  holidayConfigPicker.click();
+}
+
+async function getPortugueseHolidays(year, { preferOnline = false } = {}) {
+  const config = await loadHolidayConfig();
+
+  if (!preferOnline) {
+    if (importedHolidaySnapshot?.year === year) {
+      recordHolidaySnapshot(year, importedHolidaySnapshot.source, importedHolidaySnapshot.holidays, importedHolidaySnapshot.updatedAt);
+      holidaySourceLabel.textContent =
+        holidayConfigSource === "picker"
+          ? `Using refreshed holidays from selected file: ${holidayConfigFileName}.`
+          : "Using refreshed holidays embedded in holidays.json.";
+      return importedHolidaySnapshot.holidays;
+    }
+
+    const localHolidays = buildLocalHolidayList(year, config);
+    const sourceLabel = holidayConfigSource === "picker" ? "selected holidays.json" : "local rules";
+    recordHolidaySnapshot(year, sourceLabel, localHolidays);
+    holidaySourceLabel.textContent =
+      holidayConfigSource === "picker"
+        ? `Using holiday rules from selected file: ${holidayConfigFileName}.`
+        : "Using local holiday rules from holidays.json.";
+    return localHolidays;
+  }
+
+  const cached = holidayRuntimeCache.get(year) || readCachedHolidayYear(year);
+  if (cached?.holidays?.length) {
+    recordHolidaySnapshot(year, cached.source, cached.holidays, cached.updatedAt);
+    holidaySourceLabel.textContent = cached.updatedAt
+      ? `Using ${cached.source} holidays updated ${new Intl.DateTimeFormat("en-GB", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(new Date(cached.updatedAt))}.`
+      : `Using ${cached.source} holidays from cache.`;
+    holidayRuntimeCache.set(year, cached);
+    return cached.holidays;
+  }
+
+  const onlineHolidays = await fetchOnlineHolidayList(year, config);
+  const municipal = buildLocalHolidayList(year, { fixed: [], movable: [], municipal: config.municipal || [] });
+  const combined = [...onlineHolidays, ...municipal];
+  const payload = {
+    source: config.onlineSources?.[0]?.name || "online source",
+    updatedAt: new Date().toISOString(),
+    holidays: combined,
+  };
+
+  holidayRuntimeCache.set(year, payload);
+  writeCachedHolidayYear(year, payload);
+  recordHolidaySnapshot(year, payload.source, combined, payload.updatedAt);
+  holidaySourceLabel.textContent = `Online holiday list refreshed ${new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(payload.updatedAt))}.`;
+  return combined;
 }
 
 function getDaysInMonth(year, month) {
@@ -251,14 +535,30 @@ function makeDayOffRow(index) {
   return wrapper;
 }
 
+function getProjectPalette(index) {
+  return projectColorPalette[index % projectColorPalette.length];
+}
+
+function applyProjectColor(row, index) {
+  const { color, soft } = getProjectPalette(index);
+  row.dataset.projectColor = color;
+  row.dataset.projectSoftColor = soft;
+  row.style.setProperty("--project-color", color);
+  row.style.setProperty("--project-color-soft", soft);
+}
+
 function makeProjectRow(index) {
   const wrapper = document.createElement("div");
   wrapper.className = "project-row";
   wrapper.dataset.index = String(index);
+  applyProjectColor(wrapper, index);
 
   wrapper.innerHTML = `
     <div class="row-top">
-      <strong>Project ${index + 1}</strong>
+      <strong class="project-row-title">
+        <span class="project-color-dot" aria-hidden="true"></span>
+        <span>Project ${index + 1}</span>
+      </strong>
       <button type="button" class="secondary remove-row">Remove</button>
     </div>
     <div class="row-grid">
@@ -281,6 +581,7 @@ function makeProjectRow(index) {
     wrapper.remove();
     renumberRows(projectList, "Project");
     projectCountInput.value = String(projectList.children.length || 1);
+    scheduleCalculate();
   });
 
   return wrapper;
@@ -288,9 +589,24 @@ function makeProjectRow(index) {
 
 function renumberRows(container, label) {
   [...container.children].forEach((child, index) => {
+    child.dataset.index = String(index);
+    if (label === "Project") {
+      applyProjectColor(child, index);
+      const title = child.querySelector(".project-row-title");
+      if (title) {
+        title.innerHTML = `<span class="project-color-dot" aria-hidden="true"></span><span>${label} ${
+          index + 1
+        }</span>`;
+      }
+      const nameInput = child.querySelector(".project-name");
+      if (nameInput) {
+        nameInput.placeholder = `${label} ${index + 1}`;
+      }
+      return;
+    }
+
     const heading = child.querySelector(".row-top strong");
     if (heading) heading.textContent = `${label} ${index + 1}`;
-    child.dataset.index = String(index);
   });
 }
 
@@ -345,7 +661,7 @@ function shiftMonth(offset) {
   const next = clampMonth(currentYear, currentMonth + offset);
   yearInput.value = String(next.year);
   monthSelect.value = String(next.month);
-  calculate();
+  scheduleCalculate();
 }
 
 function buildMiniCalendar(year, month, label, selected = false, holidayKeys = new Set(), dayOffKeys = new Set()) {
@@ -427,6 +743,7 @@ function updateSidebarAllocation({
     ? [
         `
       <div class="allocation-item allocation-item-holiday">
+        <span class="allocation-item-color" aria-hidden="true"></span>
         <div class="allocation-item-copy">
           <strong>Holidays</strong>
           <span>${formatHours(holidayHours)}</span>
@@ -442,7 +759,8 @@ function updateSidebarAllocation({
   projects.forEach((project) => {
     const percent = weekdayCapacityHours > 0 ? (project.hours / weekdayCapacityHours) * 100 : 0;
     rows.push(`
-      <div class="allocation-item">
+      <div class="allocation-item" style="--project-color: ${project.color}; --project-color-soft: ${project.softColor}">
+        <span class="allocation-item-color" aria-hidden="true"></span>
         <div class="allocation-item-copy">
           <strong>${project.name}</strong>
           <span>${formatHours(project.hours)}</span>
@@ -454,6 +772,7 @@ function updateSidebarAllocation({
 
   rows.push(`
     <div class="allocation-item allocation-item-muted">
+      <span class="allocation-item-color" aria-hidden="true"></span>
       <div class="allocation-item-copy">
         <strong>Days off</strong>
         <span>${formatHours(dayOffHours)}</span>
@@ -526,6 +845,8 @@ function readProjects() {
       percent,
       remaining: hours,
       order: index,
+      color: row.dataset.projectColor || getProjectPalette(index).color,
+      softColor: row.dataset.projectSoftColor || getProjectPalette(index).soft,
     });
   });
   return projects;
@@ -548,8 +869,10 @@ function resolveProjectTargets(projects, availableHours) {
   });
 }
 
-function buildAvailableDays(year, month, dayOffEntries) {
-  const holidays = getPortugueseHolidays(year).filter((holiday) => holiday.date.getMonth() + 1 === month);
+async function buildAvailableDays(year, month, dayOffEntries, { preferOnlineHolidays = false } = {}) {
+  const holidays = (await getPortugueseHolidays(year, { preferOnline: preferOnlineHolidays })).filter(
+    (holiday) => holiday.date.getMonth() + 1 === month
+  );
   const holidayLookup = new Map();
   holidays.forEach((holiday) => {
     holidayLookup.set(dateKey(holiday.date), holiday);
@@ -614,7 +937,14 @@ function allocateHours(year, month, dailyLimit, availableDays, projects) {
       singleProject.remaining -= dailyLimit;
       schedule.push({
         date,
-        allocations: [{ name: singleProject.name, hours: dailyLimit }],
+        allocations: [
+          {
+            name: singleProject.name,
+            hours: dailyLimit,
+            color: singleProject.color,
+            softColor: singleProject.softColor,
+          },
+        ],
         empty: false,
       });
       return;
@@ -628,7 +958,7 @@ function allocateHours(year, month, dailyLimit, availableDays, projects) {
       const take = Math.min(remainingCapacity, project.remaining);
       project.remaining -= take;
       remainingCapacity -= take;
-      allocations.push({ name: project.name, hours: take });
+      allocations.push({ name: project.name, hours: take, color: project.color, softColor: project.softColor });
     }
 
     schedule.push({
@@ -775,7 +1105,7 @@ function renderCalendar(schedule, holidays, blocked, year, month) {
                     const allocations = (day?.allocations || [])
                       .map(
                         (item) => `
-                          <div class="allocation-row">
+                          <div class="allocation-row" style="--project-color: ${item.color}; --project-color-soft: ${item.softColor}">
                             <span>${item.name}</span>
                             <strong>${item.hours.toFixed(2).replace(/\.00$/, "")}h</strong>
                           </div>
@@ -843,7 +1173,7 @@ function renderCalendar(schedule, holidays, blocked, year, month) {
   `;
 }
 
-function calculate() {
+async function calculate({ preferOnlineHolidays = false } = {}) {
   const year = Number(yearInput.value);
   const month = Number(monthSelect.value);
   const dailyLimit = Math.max(1, Number(dailyLimitInput.value) || 8);
@@ -862,7 +1192,9 @@ function calculate() {
   }
 
   const dayOffEntries = readDayOffEntries(year, month);
-  const { holidays, availableDays, blocked } = buildAvailableDays(year, month, dayOffEntries);
+  const { holidays, availableDays, blocked } = await buildAvailableDays(year, month, dayOffEntries, {
+    preferOnlineHolidays,
+  });
   const availableHours = availableDays.length * dailyLimit;
   const weekdayCapacityHours = countWeekdaysInMonth(year, month) * dailyLimit;
   const projectClones = resolveProjectTargets(projects, availableHours);
@@ -906,7 +1238,10 @@ function scheduleCalculate() {
   }
   calculateTimer = setTimeout(() => {
     calculateTimer = null;
-    calculate();
+    calculate().catch((error) => {
+      console.error(error);
+      setHolidayConfigUnavailable(error.message || "Holiday configuration could not be loaded.");
+    });
   }, 80);
 }
 
@@ -915,11 +1250,58 @@ document.getElementById("addDayOff").addEventListener("click", () => {
   scheduleCalculate();
 });
 
-monthSelect.addEventListener("change", calculate);
-yearInput.addEventListener("change", calculate);
-dailyLimitInput.addEventListener("change", calculate);
+monthSelect.addEventListener("change", scheduleCalculate);
+yearInput.addEventListener("change", scheduleCalculate);
+dailyLimitInput.addEventListener("change", scheduleCalculate);
 prevMonthButton.addEventListener("click", () => shiftMonth(-1));
 nextMonthButton.addEventListener("click", () => shiftMonth(1));
+chooseHolidaysButton.addEventListener("click", () => {
+  chooseHolidayConfigFile();
+});
+holidayConfigPicker.addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  try {
+    await readHolidayConfigFromFile(file);
+    holidaySourceLabel.textContent = `Loaded holiday rules from selected file: ${holidayConfigFileName}.`;
+    scheduleCalculate();
+  } catch (error) {
+    console.error(error);
+    setHolidayConfigUnavailable("The selected holidays.json file could not be parsed.");
+  }
+});
+refreshHolidaysButton.addEventListener("click", () => {
+  refreshHolidaysButton.disabled = true;
+  holidaySourceLabel.textContent = "Refreshing holidays from the online source...";
+  calculate({ preferOnlineHolidays: true })
+    .catch((error) => {
+      console.error(error);
+      setHolidayConfigUnavailable(error.message || "Online refresh failed.");
+    })
+    .finally(() => {
+      refreshHolidaysButton.disabled = false;
+    });
+});
+downloadHolidaysButton.addEventListener("click", async () => {
+  const year = Number(yearInput.value);
+  downloadHolidaysButton.disabled = true;
+
+  try {
+    const config = await loadHolidayConfig();
+    if (!latestHolidaySnapshot || latestHolidaySnapshot.year !== year) {
+      await getPortugueseHolidays(year);
+    }
+
+    downloadJsonFile(`holidays-${year}.json`, buildHolidayExportPayload(config));
+    holidaySourceLabel.textContent = `Downloaded holiday export for ${year}.`;
+  } catch (error) {
+    console.error(error);
+    holidaySourceLabel.textContent = "Holiday export failed.";
+  } finally {
+    downloadHolidaysButton.disabled = false;
+  }
+});
 projectCountInput.addEventListener("change", () => {
   syncProjects(projectCountInput.value);
   scheduleCalculate();
@@ -930,4 +1312,13 @@ projectList.addEventListener("input", scheduleCalculate);
 projectList.addEventListener("change", scheduleCalculate);
 
 seedDefaults();
-calculate();
+loadHolidayConfig()
+  .then(() => calculate())
+  .catch((error) => {
+    console.error(error);
+    setHolidayConfigUnavailable(getHolidayConfigLoadHelpMessage());
+  });
+
+if (window.location.protocol === "file:") {
+  setHolidayConfigUnavailable(getHolidayConfigLoadHelpMessage());
+}
